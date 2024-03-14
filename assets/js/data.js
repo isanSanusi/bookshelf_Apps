@@ -29,13 +29,13 @@ const handlerHideForm = () => {
   modal.style.display = "none";
   form.style.display = "none";
 };
-const handlerShowForm = () => {
-  modal.style.display = "flex";
-  form.style.display = "flex";
-};
 const handlerHideAlert = () => {
   modal.style.display = "none";
   alert.style.display = "none";
+};
+const handlerShowForm = () => {
+  modal.style.display = "flex";
+  form.style.display = "flex";
 };
 const handlerShowAlert = () => {
   modal.style.display = "flex";
@@ -45,7 +45,7 @@ const handlerShowAlert = () => {
 submitButton.addEventListener("click", () => handlerHideForm());
 document.querySelector(".add_book").addEventListener("click", () => {
   formTitle.innerText = "Tambahkan Buku baru";
-  submitButton.value = "Submit";
+  submitButton.value = "Add Book";
   handlerShowForm();
 });
 document.querySelector(".close_btn").addEventListener("click", () => {
@@ -58,6 +58,9 @@ document.getElementById("search_book").addEventListener("input", () => {
 document.addEventListener("DOMContentLoaded", () => {
   submitForm.addEventListener("submit", (e) => {
     e.preventDefault();
+    if (e.target[4].value === "Update") {
+      editBook();
+    }
     addNewBook();
   });
   isStorageExist() && loadDataFromStorage();
@@ -96,14 +99,14 @@ const submitValue = () => {
 const addNewBook = () => {
   const valueOnSubmit = submitValue();
   if (!valueOnSubmit) return;
-  const generateId = generatedID();
+  const generateId = +new Date();
   const bookDetail = bookDetails(generateId, ...Object.values(valueOnSubmit));
   lemariBuku.push(bookDetail);
   document.dispatchEvent(new Event(READ_BOOKS));
   document.dispatchEvent(new Event(CREATE_MSG));
   saveData();
 };
-const generatedID = () => +new Date();
+// const generatedID = () => +new Date();
 const bookDetails = (id, title, author, year, isCompleted) => {
   return {
     id,
@@ -113,6 +116,7 @@ const bookDetails = (id, title, author, year, isCompleted) => {
     isCompleted,
   };
 };
+
 const macBooks = (bookDetail) => {
   const container = document.createElement("div");
   container.classList.add("book", "shadow");
@@ -125,6 +129,17 @@ const macBooks = (bookDetail) => {
         <p>Release : ${bookDetail.year}</p>
       </div>
     </div>`;
+
+  // pembuatan modal box confirm
+  const boxConfirm = document.getElementById("confirm_modal");
+  const cancelBtn = document.createElement("button");
+  cancelBtn.classList.add("no");
+  cancelBtn.innerText = "No";
+  const deleteButton = document.createElement("button");
+  deleteButton.classList.add("yes");
+  deleteButton.innerText = "Yes";
+  boxConfirm.innerHTML = "";
+  boxConfirm.append(deleteButton, cancelBtn);
 
   const action = document.createElement("div");
   action.classList.add("action");
@@ -152,7 +167,7 @@ const macBooks = (bookDetail) => {
   trashButton.classList.add("trash-button");
   trashButton.innerText = "Delete";
   trashButton.addEventListener("click", () => {
-    handlerShowAlert();
+    removeBook(bookDetail.id);
   });
   const editButton = document.createElement("button");
   editButton.classList.add("edit-button");
@@ -161,26 +176,10 @@ const macBooks = (bookDetail) => {
     formTitle.innerText = "Update buku mu";
     document.getElementById("onSubmit").value = "Update";
     handlerShowForm();
-    editBook(bookDetail.id);
+    formUpdate(bookDetail.id);
+    // editBook(bookDetail.id);
   });
   boxOpstions.append(trashButton, editButton);
-
-  const boxConfirm = document.querySelector(".button");
-  const cancelBtn = document.createElement("button");
-  cancelBtn.classList.add("no");
-  cancelBtn.innerText = "No";
-
-  const deleteButton = document.createElement("button");
-  deleteButton.classList.add("yes");
-  deleteButton.innerText = "Yes";
-  cancelBtn.addEventListener("click", () => handlerHideAlert());
-  deleteButton.addEventListener("click", () => {
-    document.dispatchEvent(new Event(DELETE_MSG));
-    removeBook(bookDetail.id);
-    handlerHideAlert();
-  });
-  boxConfirm.innerHTML = "";
-  boxConfirm.append(deleteButton, cancelBtn);
   container.append(boxOpstions, action);
 
   if (bookDetail.isCompleted) {
@@ -199,33 +198,59 @@ const macBooks = (bookDetail) => {
   return container;
 };
 
-const editBook = (bookId) => {
-  const targetBook = findBook(bookId);
-  document.getElementById("judul").value = targetBook.title;
-  document.getElementById("penulis").value = targetBook.author;
-  document.getElementById("tahun").value = targetBook.year;
-  document.getElementById("done").checked = targetBook.isCompleted;
-  if (targetBook) {
-    const valueOnSubmit = submitValue();
-    targetBook.title = valueOnSubmit.title;
-    targetBook.author = valueOnSubmit.author;
-    targetBook.year = valueOnSubmit.year;
-    targetBook.isCompleted = valueOnSubmit.isCompleted;
-    saveData();
-    document.dispatchEvent(new Event(READ_BOOKS));
-    submitForm.addEventListener("submit", () => {
-      removeBook(bookId);
-      return;
-    });
-  }
+const formUpdate = (bookId) => {
+  const bookTarget = findBook(bookId);
+  if (bookTarget === null) return;
+  const newTitle = (document.getElementById("judul").value = bookTarget.title);
+  const newAuthor = (document.getElementById("penulis").value =
+    bookTarget.author);
+  const newYear = (document.getElementById("tahun").value = bookTarget.year);
+  const newIsCompleted = document.getElementById("done").checked;
+  submitForm.addEventListener("submit", () => {
+    editBook();
+  });
+  return { newTitle, newAuthor, newYear, newIsCompleted };
 };
-const removeBook = (bookId) => {
-  const bookTarget = findBookIndex(bookId);
-  if (bookTarget === -1) return;
-  lemariBuku.splice(bookTarget, 1);
+
+const editBook = (bookId) => {
+  const bookTarget = findBook(bookId);
+  if (bookTarget === null) return;
+
+  const updateValue = formUpdate();
+  console.log(updateValue);
+
+  bookTarget.title = updateValue.newTitle;
+  bookTarget.author = updateValue.newAuthor;
+  bookTarget.year = updateValue.newYear;
+  bookTarget.isCompleted = updateValue.newIsCompleted;
   document.dispatchEvent(new Event(READ_BOOKS));
   saveData();
 };
+
+const removeBook = (bookId) => {
+  handlerShowAlert();
+  const boxConfirm = document.getElementById("confirm_modal");
+  let bookTarget = findBookIndex(bookId);
+  if (bookTarget === -1) return;
+  const handleClick = (e) => {
+    const confirm = e.target.innerText;
+    if (confirm === "Yes") {
+      lemariBuku.splice(bookTarget, 1);
+      document.dispatchEvent(new Event(READ_BOOKS));
+      handlerHideAlert();
+      console.log(bookTarget);
+    } else {
+      handlerHideAlert();
+      console.log(bookTarget);
+    }
+    boxConfirm.removeEventListener("click", handleClick);
+  };
+  boxConfirm.addEventListener("click", handleClick);
+  saveData();
+  console.log(`index adalah ${bookTarget}`);
+  return;
+};
+
 const undoBook = (bookId) => {
   const bookTarget = findBook(bookId);
   if (bookTarget == null) return;

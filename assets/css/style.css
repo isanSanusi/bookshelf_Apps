@@ -325,6 +325,7 @@ section h2 {
   background-color: yellowgreen;
 }
 .add_book {
+  z-index: 275;
   position: fixed;
   display: block;
   width: 50px;
