@@ -58,13 +58,17 @@ document.getElementById("search_book").addEventListener("input", () => {
 document.addEventListener("DOMContentLoaded", () => {
   submitForm.addEventListener("submit", (e) => {
     e.preventDefault();
-    if (e.target[4].value === "Update") {
-      editBook();
+    const bookId = document.querySelector(".book").getAttribute("book-id");
+    const submitButtonValue = e.target.querySelector("#onSubmit").value;
+    if (submitButtonValue === "Update") {
+      editBook(bookId);
+    } else {
+      addNewBook();
     }
-    addNewBook();
   });
   isStorageExist() && loadDataFromStorage();
 });
+
 document.addEventListener(READ_BOOKS, () => {
   const progressReadBook = document.getElementById("progress_read");
   const completeReadBook = document.getElementById("complete_read");
@@ -106,7 +110,7 @@ const addNewBook = () => {
   document.dispatchEvent(new Event(CREATE_MSG));
   saveData();
 };
-// const generatedID = () => +new Date();
+
 const bookDetails = (id, title, author, year, isCompleted) => {
   return {
     id,
@@ -121,6 +125,8 @@ const macBooks = (bookDetail) => {
   const container = document.createElement("div");
   container.classList.add("book", "shadow");
   container.setAttribute("id", `todo-${bookDetail.id}`);
+  //baru di tambah
+  container.setAttribute("book-id", bookDetail.id);
   container.innerHTML = `
     <div class="cover">
       <h3 class="title">${bookDetail.title}</h3>
@@ -130,7 +136,6 @@ const macBooks = (bookDetail) => {
       </div>
     </div>`;
 
-  // pembuatan modal box confirm
   const boxConfirm = document.getElementById("confirm_modal");
   const cancelBtn = document.createElement("button");
   cancelBtn.classList.add("no");
@@ -177,7 +182,6 @@ const macBooks = (bookDetail) => {
     document.getElementById("onSubmit").value = "Update";
     handlerShowForm();
     formUpdate(bookDetail.id);
-    // editBook(bookDetail.id);
   });
   boxOpstions.append(trashButton, editButton);
   container.append(boxOpstions, action);
@@ -200,31 +204,39 @@ const macBooks = (bookDetail) => {
 
 const formUpdate = (bookId) => {
   const bookTarget = findBook(bookId);
-  if (bookTarget === null) return;
-  const newTitle = (document.getElementById("judul").value = bookTarget.title);
-  const newAuthor = (document.getElementById("penulis").value =
-    bookTarget.author);
-  const newYear = (document.getElementById("tahun").value = bookTarget.year);
+  if (bookTarget === null) return null;
+
+  document.getElementById("judul").value = bookTarget.title;
+  document.getElementById("penulis").value = bookTarget.author;
+  document.getElementById("tahun").value = bookTarget.year;
+  document.getElementById("done").checked = bookTarget.isCompleted;
+
+  const newTitle = document.getElementById("judul").value;
+  const newAuthor = document.getElementById("penulis").value;
+  const newYear = document.getElementById("tahun").value;
   const newIsCompleted = document.getElementById("done").checked;
-  submitForm.addEventListener("submit", () => {
-    editBook();
+
+  submitButton.addEventListener("submit", () => {
+    editBook(bookId);
   });
   return { newTitle, newAuthor, newYear, newIsCompleted };
 };
 
 const editBook = (bookId) => {
+  const updateValue = formUpdate(bookId);
   const bookTarget = findBook(bookId);
   if (bookTarget === null) return;
 
-  const updateValue = formUpdate();
-  console.log(updateValue);
+  console.log("aw snap");
 
-  bookTarget.title = updateValue.newTitle;
-  bookTarget.author = updateValue.newAuthor;
-  bookTarget.year = updateValue.newYear;
-  bookTarget.isCompleted = updateValue.newIsCompleted;
-  document.dispatchEvent(new Event(READ_BOOKS));
-  saveData();
+  if (updateValue !== null) {
+    bookTarget.title = updateValue.newTitle;
+    bookTarget.author = updateValue.newAuthor;
+    bookTarget.year = updateValue.newYear;
+    bookTarget.isCompleted = updateValue.newIsCompleted;
+    document.dispatchEvent(new Event(READ_BOOKS));
+    saveData();
+  }
 };
 
 const removeBook = (bookId) => {
