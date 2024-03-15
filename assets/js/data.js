@@ -9,6 +9,7 @@ const lemariBuku = [];
 const ALERT_MSG = "alert-pop";
 const CREATE_MSG = "create-book";
 const READ_BOOKS = "render-book";
+const UPDATE_MSG = "update-book";
 const DELETE_MSG = "deleted-book";
 const STORAGE_KEY = "LIBRARY_APPS";
 DataBook.forEach((data) => {
@@ -58,10 +59,9 @@ document.getElementById("search_book").addEventListener("input", () => {
 document.addEventListener("DOMContentLoaded", () => {
   submitForm.addEventListener("submit", (e) => {
     e.preventDefault();
-    const bookId = document.querySelector(".book").getAttribute("book-id");
     const submitButtonValue = e.target.querySelector("#onSubmit").value;
     if (submitButtonValue === "Update") {
-      editBook(bookId);
+      editBook();
     } else {
       addNewBook();
     }
@@ -180,8 +180,7 @@ const macBooks = (bookDetail) => {
   editButton.addEventListener("click", () => {
     formTitle.innerText = "Update buku mu";
     document.getElementById("onSubmit").value = "Update";
-    handlerShowForm();
-    formUpdate(bookDetail.id);
+    editBook(bookDetail.id);
   });
   boxOpstions.append(trashButton, editButton);
   container.append(boxOpstions, action);
@@ -202,45 +201,35 @@ const macBooks = (bookDetail) => {
   return container;
 };
 
-const formUpdate = (bookId) => {
+const editBook = (bookId) => {
+  handlerShowForm();
   const bookTarget = findBook(bookId);
-  if (bookTarget === null) return null;
+  if (!bookTarget) return;
 
   document.getElementById("judul").value = bookTarget.title;
   document.getElementById("penulis").value = bookTarget.author;
   document.getElementById("tahun").value = bookTarget.year;
   document.getElementById("done").checked = bookTarget.isCompleted;
 
-  const newTitle = document.getElementById("judul").value;
-  const newAuthor = document.getElementById("penulis").value;
-  const newYear = document.getElementById("tahun").value;
-  const newIsCompleted = document.getElementById("done").checked;
-
-  submitButton.addEventListener("submit", () => {
-    editBook(bookId);
-  });
-  return { newTitle, newAuthor, newYear, newIsCompleted };
-};
-
-const editBook = (bookId) => {
-  const updateValue = formUpdate(bookId);
-  const bookTarget = findBook(bookId);
-  if (bookTarget === null) return;
-
-  console.log("aw snap");
-
-  if (updateValue !== null) {
-    bookTarget.title = updateValue.newTitle;
-    bookTarget.author = updateValue.newAuthor;
-    bookTarget.year = updateValue.newYear;
-    bookTarget.isCompleted = updateValue.newIsCompleted;
+  function handleBookUpdate() {
+    bookTarget.title = document.getElementById("judul").value;
+    bookTarget.author = document.getElementById("penulis").value;
+    bookTarget.year = document.getElementById("tahun").value;
+    bookTarget.isCompleted = document.getElementById("done").checked;
     document.dispatchEvent(new Event(READ_BOOKS));
+    document.dispatchEvent(new Event(UPDATE_MSG));
     saveData();
+    handlerHideForm();
+    document.getElementById("judul").value = "";
+    document.getElementById("penulis").value = "";
+    document.getElementById("tahun").value = "";
+    document.getElementById("done").checked = false;
+    submitForm.removeEventListener("submit", handleBookUpdate);
   }
+  submitForm.addEventListener("submit", handleBookUpdate);
 };
 
 const removeBook = (bookId) => {
-  handlerShowAlert();
   const boxConfirm = document.getElementById("confirm_modal");
   let bookTarget = findBookIndex(bookId);
   if (bookTarget === -1) return;
@@ -249,17 +238,16 @@ const removeBook = (bookId) => {
     if (confirm === "Yes") {
       lemariBuku.splice(bookTarget, 1);
       document.dispatchEvent(new Event(READ_BOOKS));
+      document.dispatchEvent(new Event(DELETE_MSG));
+      saveData();
       handlerHideAlert();
-      console.log(bookTarget);
     } else {
       handlerHideAlert();
-      console.log(bookTarget);
     }
     boxConfirm.removeEventListener("click", handleClick);
   };
   boxConfirm.addEventListener("click", handleClick);
-  saveData();
-  console.log(`index adalah ${bookTarget}`);
+  handlerShowAlert();
   return;
 };
 
@@ -306,7 +294,11 @@ document.addEventListener(DELETE_MSG, () => {
   flash.style.backgroundColor = "var(--danger)";
   moved();
 });
-
+document.addEventListener(UPDATE_MSG, () => {
+  flash.innerText = "Buku mu Up-to-date!";
+  flash.style.backgroundColor = "var(--ready)";
+  moved();
+});
 document.addEventListener(ALERT_MSG, () => {
   flash.innerText = "Harap isi semua data!";
   flash.style.backgroundColor = "var(--danger)";
